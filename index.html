@@ -1,346 +1,876 @@
 <!DOCTYPE html>
-<!--
-  ===========================================================================
- *  HUSHBOX v3.2.2 - Secure QR Messaging Platform
- *  CSS Architecture & Design: MikePetovick
- *  Copyright © 2025 HushBox Technologies. All rights reserved.
- *  Security Certificate: HBX-SEC-2025-08 | Authored: 2025-06-14
- *  License: AGPL-3.0 (https://www.gnu.org/licenses/agpl-3.0.en.html)
- *  Code Style: Modular BEM | Variables | Responsive-first
- *  Core Features: Crypto-grade UI | Accessibility AA+ | Zero-dependency
- *  MikePetovick Design Signature: Dark theme with biometric-inspired accents
- *  HushBox Technology Stack: WebCrypto API | Military-grade encryption
-
-SPDX-License-Identifier: AGPL-3.0-only
-Copyright (C) 2025 HushBox
-===========================================================================
--->
-
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <meta name="description" content="HushBox - Secure messaging with enterprise-grade QR encryption">
-    <meta name="keywords" content="secure messaging, encryption, QR, AES-256, privacy, enterprise security">
-    <meta name="author" content="HushBox Team">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; style-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'; font-src https://cdnjs.cloudflare.com; img-src 'self' data:;">
-    <title>HushBox - Secure Messaging</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="icon" type="image/png" href="favicon.png">
-    <link rel="manifest" href="manifest.json">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="theme-color" content="#0b1120">
+    <title>MeshChat · Red P2P por proximidad</title>
+    <!-- Leaflet (mapa) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            font-family: system-ui, 'Segoe UI', 'Helvetica Neue', sans-serif;
+            background: #0b1120;
+            color: #e0e0e0;
+            overflow: hidden;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+        .app-header {
+            background: rgba(18, 25, 40, 0.9);
+            backdrop-filter: blur(12px);
+            padding: 10px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            border-bottom: 1px solid rgba(56,189,248,0.2);
+            z-index: 20;
+        }
+        .header-icon {
+            background: transparent;
+            border: none;
+            font-size: 1.6rem;
+            color: #b0c4de;
+            cursor: pointer;
+            transition: 0.2s;
+            padding: 6px;
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .header-icon:active { background: rgba(255,255,255,0.1); }
+        .app-title {
+            font-weight: 600;
+            font-size: 1rem;
+            color: #2dd4bf;
+            background: rgba(45,212,191,0.1);
+            padding: 6px 14px;
+            border-radius: 40px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .map-container {
+            flex: 1;
+            position: relative;
+            background: #1e293b;
+            width: 100%;
+            overflow: hidden;
+        }
+        #map { width: 100%; height: 100%; z-index: 1; }
+        .bottom-toolbar {
+            background: rgba(18,25,40,0.9);
+            backdrop-filter: blur(12px);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 6px 10px 12px;
+            border-top: 1px solid rgba(56,189,248,0.15);
+            z-index: 20;
+        }
+        .tool-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: transparent;
+            border: none;
+            font-size: 1.4rem;
+            color: #94a3b8;
+            transition: 0.2s;
+            padding: 6px 0;
+            min-width: 60px;
+            border-radius: 30px;
+            cursor: pointer;
+            gap: 4px;
+            font-weight: 500;
+        }
+        .tool-btn span { font-size: 0.65rem; letter-spacing: 0.3px; }
+        .tool-btn i { font-size: 1.5rem; }
+        .tool-btn:active { background: rgba(255,255,255,0.08); transform: scale(0.94); }
+        .tool-btn.highlight { color: #2dd4bf; }
+        #connDot { font-size: 0.5rem; margin-right: 4px; }
+
+        /* Overlay panels */
+        .overlay-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(15,23,42,0.98);
+            backdrop-filter: blur(16px);
+            border-radius: 24px 24px 0 0;
+            padding: 20px;
+            max-height: 70vh;
+            overflow-y: auto;
+            z-index: 100;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
+            border-top: 1px solid rgba(56,189,248,0.3);
+        }
+        .overlay-panel.open { transform: translateY(0); }
+        .overlay-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .overlay-header h3 { font-size: 1.1rem; color: #2dd4bf; }
+        .close-panel { background: none; border: none; color: #aaa; font-size: 1.4rem; cursor: pointer; }
+        .contact-item, .message-item {
+            padding: 10px;
+            border-radius: 12px;
+            margin-bottom: 6px;
+            background: rgba(255,255,255,0.04);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+        .contact-item:active, .message-item:active { background: rgba(255,255,255,0.1); }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+            max-height: 40vh;
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+        }
+        .chat-bubble {
+            max-width: 80%;
+            padding: 8px 12px;
+            border-radius: 16px;
+            margin: 4px 0;
+            font-size: 0.9rem;
+            word-break: break-word;
+        }
+        .chat-bubble.own { background: #0e7cf1; margin-left: auto; border-bottom-right-radius: 4px; }
+        .chat-bubble.other { background: #1e293b; margin-right: auto; border-bottom-left-radius: 4px; }
+        .chat-input-area { display: flex; gap: 8px; margin-top: 10px; }
+        .chat-input-area input {
+            flex: 1;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 20px;
+            padding: 10px 16px;
+            color: white;
+            font-size: 0.9rem;
+        }
+        .chat-input-area button {
+            background: #2dd4bf;
+            border: none;
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            color: #0b1120;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        .toast-msg {
+            position: fixed;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(12px);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            z-index: 200;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            white-space: nowrap;
+        }
+        /* Botón flotante para activar GPS */
+        .gps-float-btn {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            background: #2dd4bf;
+            color: #0b1120;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 1.4rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            z-index: 150;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        @media (max-width: 480px) {
+            .tool-btn span { font-size: 0.6rem; }
+        }
+    </style>
 </head>
 <body>
-    <header class="header" role="banner">
-        <div class="header-top">
-            <h1 class="logo">
-                <a href="#" class="lock-icon" title="Enterprise Security" aria-label="Enterprise Security">
-                    <i class="fas fa-lock"></i>
-                </a>
-                HUSH<span class="white-text">B</span><i class="fas fa-qrcode qr-icon" aria-hidden="true"></i><span class="white-text">X</span> 
-            </h1>
+    <!-- HEADER -->
+    <header class="app-header">
+        <button class="header-icon" id="contactsBtn" aria-label="Contactos">
+            <i class="fas fa-users"></i>
+        </button>
+        <div class="app-title">
+            <i class="fas fa-broadcast-tower" style="color:#2dd4bf;"></i> MeshChat
         </div>
-        <div class="header-bottom">
-            <div class="security-level high">
-                <i class="fas fa-shield-alt"></i>
-                <span>Security Level: High</span>
-            </div>
-        </div>
+        <button class="header-icon" id="settingsBtn" aria-label="Ajustes">
+            <i class="fas fa-sliders-h"></i>
+            <span id="connDot" class="fas fa-circle" style="color:#ef4444; font-size:0.5rem; margin-left:4px;"></span>
+        </button>
     </header>
-    
-    <!-- Main content -->
-    <main class="container" role="main">
-        <div class="main-grid">
-            <!-- Encryption section -->
-            <section class="section encrypt-section" aria-label="Encryption Section">
-                <form id="encrypt-form" novalidate>
-                    <div class="input-group">
-                        <label class="input-label" for="passphrase">Passphrase</label>
-                        <input type="password" id="passphrase" placeholder="Minimum 12 characters" required aria-describedby="passphrase-error">
-                        <i class="fas fa-key icon icon-left" aria-hidden="true"></i>
-                        <div class="right-icons">
-                            <button type="button" class="icon-right toggle-password" title="Show/Hide Passphrase" aria-label="Show/Hide Passphrase">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button type="button" class="icon-right generate-password" title="Generate Secure Passphrase" aria-label="Generate Secure Passphrase">
-                                <i class="fas fa-dice"></i>
-                            </button>
-                        </div>
-                        <div class="password-strength" aria-hidden="true">
-                            <div class="password-strength-bar" id="password-strength-bar"></div>
-                        </div>
-                        <span id="passphrase-error" class="error-message hidden" role="alert"></span>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label class="input-label" for="message-input">Secret Message</label>
-                        <textarea id="message-input" placeholder="Write your secure message here..." rows="5" maxlength="10000" required aria-describedby="char-counter"></textarea>
-                        <i class="fas fa-comment-dots icon icon-left" aria-hidden="true"></i>
-                        <div id="char-counter" class="char-counter">0/10000</div>
-                    </div>
 
-                    <div class="button-group">
-                        <button type="button" id="upload-arrow-button" class="btn-icon" title="Upload QR Image" aria-label="Upload QR Image">
-                            <i class="fas fa-qrcode"></i>
-                        </button>
-                        <button type="button" id="scan-button" class="btn-icon" title="Scan QR" aria-label="Scan QR">
-                            <i class="fas fa-camera"></i>
-                        </button>
-                        <button type="button" id="settings-button" class="btn-icon" title="Settings" aria-label="Settings">
-                            <i class="fas fa-cog"></i>
-                        </button>
-                    </div>
-
-                    <div class="action-buttons compact">
-                        <button type="submit" id="send-button" class="btn-primary compact-btn" aria-label="Encrypt Message">
-                            <i class="fas fa-lock"></i> Encrypt
-                        </button>
-                    </div>
-                </form>
-
-                <div id="qr-container" class="hidden no-print" role="region" aria-labelledby="qr-title">
-                    <div class="qr-header">
-                        <h3 id="qr-title"><i class="fas fa-qrcode" aria-hidden="true"></i> Secure QR Code</h3>
-                        <div class="qr-actions">
-                            <button id="pdf-button" class="btn-secondary" title="Export to PDF" aria-label="Export to PDF">
-                                <i class="fas fa-file-pdf"></i>
-                            </button>
-                            <button id="share-button" class="btn-secondary" aria-label="Share QR">
-                                <i class="fas fa-share-alt"></i>
-                            </button>
-                            <button id="copy-button" class="btn-secondary" aria-label="Copy QR">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <canvas id="qr-canvas" aria-label="Encrypted QR Code"></canvas>
-                    <div class="qr-meta">
-                        <span><i class="fas fa-shield-alt"></i> Security Level: High</span>
-                        <span><i class="fas fa-clock"></i> Generated: <span id="qr-time">--:--</span></span>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Messages section -->
-            <section class="section decrypt-section" aria-label="Messages Section">
-                <div id="messages" class="message-container" role="log" aria-live="polite">
-                    <div class="message-placeholder">
-                        <i class="fas fa-comments" aria-hidden="true"></i>
-                        <p>Messages will appear here</p>
-                        <p>Secure history</p>
-                    </div>
-                </div>
-                
-                <div class="action-buttons compact history-buttons">
-                    <button id="clear-history" class="btn-icon history-btn" title="Clear History" aria-label="Clear History">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                    <button id="export-history" class="btn-icon history-btn" title="Export History" disabled aria-label="Export History">
-                        <i class="fas fa-arrow-down"></i>
-                    </button>
-                    <button id="import-history" class="btn-icon history-btn" title="Import History" aria-label="Import History">
-                        <i class="fas fa-arrow-up"></i>
-                    </button>
-                </div>
-            </section>
-        </div>
+    <!-- MAPA -->
+    <main class="map-container">
+        <div id="map"></div>
     </main>
 
-    <!-- Footer -->
-    <footer class="footer" role="contentinfo">
-        <div class="social-icons">
-            <a href="https://t.me/HUSHBOX_QR" target="_blank" rel="noopener noreferrer" class="btn-icon social-icon telegram" title="Telegram" aria-label="Telegram Channel">
-                <i class="fab fa-telegram-plane"></i>
-            </a>
-            <a href="https://twitter.com/HUSHBOXonline" target="_blank" rel="noopener noreferrer" class="btn-icon social-icon twitter" title="Twitter" aria-label="Twitter Profile">
-                <i class="fab fa-twitter"></i>
-            </a>
-            <a href="https://github.com/MPetovick/HUSHBOX/blob/main/README.md" target="_blank" rel="noopener noreferrer" class="btn-icon social-icon docs" title="Documentation" aria-label="Documentation">
-                <i class="fas fa-book"></i>
-            </a>
-            <a href="mailto:hushbox.online@pm.me" class="btn-icon social-icon support" title="Support" aria-label="Support">
-                <i class="fas fa-headset"></i>
-            </a>
-        </div>
-        <p>© 2025 HushBox. All rights reserved.</p>
-        <p id="app-version">Version 3.2.2 | Security Certificate: HBX-SEC-2025-08</p>
-        <nav aria-label="Legal Links">
-            <a href="https://github.com/MPetovick/HUSHBOX/blob/main/legal/privacy-policy.md" target="_blank" rel="noopener noreferrer">Privacy Policy</a> | 
-            <a href="https://github.com/MPetovick/HUSHBOX/blob/main/legal/terms-of-service.md" target="_blank" rel="noopener noreferrer">Terms of Service</a> | 
-            <a href="mailto:hushbox.online@pm.me" target="_blank" rel="noopener noreferrer">Report Vulnerability</a>
-        </nav>
+    <!-- TOOLBAR INFERIOR -->
+    <footer class="bottom-toolbar">
+        <button class="tool-btn" id="homeBtn">
+            <i class="fas fa-home"></i>
+            <span>Inicio</span>
+        </button>
+        <button class="tool-btn" id="qrBtn">
+            <i class="fas fa-qrcode"></i>
+            <span>QR</span>
+        </button>
+        <button class="tool-btn highlight" id="locateBtn">
+            <i class="fas fa-location-dot"></i>
+            <span>Mi mapa</span>
+        </button>
+        <button class="tool-btn" id="chatBtn">
+            <i class="fas fa-comment-dots"></i>
+            <span>Chat</span>
+        </button>
     </footer>
 
-    <!-- Tutorial modal -->
-    <div id="tutorial-modal" class="modal" role="dialog" aria-labelledby="tutorial-title" aria-modal="true" tabindex="-1">
-        <div class="modal-content">
-            <button class="close-modal" aria-label="Close Tutorial">×</button>
-            <div class="modal-header">
-                <h2 id="tutorial-title"><i class="fas fa-lock"></i> HUSHBOX</h2>
-                <p class="modal-subtitle" lang="en">Your Digital Privacy Vault</p>
-            </div>
-            <div class="modal-body">
-                <div class="feature-grid">
-                    <div class="feature-item">
-                        <i class="fas fa-shield-alt feature-icon"></i>
-                        <h3 lang="en">Zero-Server Security</h3>
-                        <p lang="en">Messages never touch external servers, ensuring true privacy.</p>
-                    </div>
-                    <div class="feature-item">
-                        <i class="fas fa-qrcode feature-icon"></i>
-                        <h3 lang="en">QR Encryption</h3>
-                        <p lang="en">Advanced AES-256-GCM encryption with QR code delivery.</p>
-                    </div>
-                    <div class="feature-item">
-                        <i class="fas fa-mobile-alt feature-icon"></i>
-                        <h3 lang="en">Mobile-Ready</h3>
-                        <p lang="en">Install as a PWA for seamless use on any device.</p>
-                    </div>
-                    <div class="feature-item">
-                        <i class="fas fa-user-secret feature-icon"></i>
-                        <h3 lang="en">Complete Anonymity</h3>
-                        <p lang="en">No metadata or tracking—your identity stays hidden.</p>
-                    </div>
-                </div>
-                <div class="security-tip">
-                    <i class="fas fa-info-circle"></i>
-                    <p lang="en"><strong>Pro Tip:</strong> Share your passphrase via a secure channel (e.g., Signal) separately from the QR code for maximum security.</p>
-                </div>
-            </div>
-            <div class="modal-actions">
-                <button id="close-tutorial" class="btn-primary" aria-label="Dismiss Tutorial">Dismiss Tutorial</button>
-                <label class="dont-show-again">
-                    <input type="checkbox" id="dont-show-again-checkbox" aria-label="Do not show this tutorial again">
-                    <span lang="en">Don’t show again</span>
-                </label>
-                <button id="dont-show-again" class="btn-secondary hidden" aria-label="Save preference to not show again">Done</button>
-            </div>
+    <!-- BOTÓN FLOTANTE GPS (visible hasta que se active) -->
+    <button id="gpsFloatBtn" class="gps-float-btn" title="Activar GPS">
+        <i class="fas fa-crosshairs"></i>
+    </button>
+
+    <!-- PANEL DE CONTACTOS -->
+    <div id="contactsPanel" class="overlay-panel">
+        <div class="overlay-header">
+            <h3><i class="fas fa-users"></i> Contactos cercanos</h3>
+            <button class="close-panel" id="closeContactsBtn"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="peerListContainer">
+            <p style="text-align:center; color:#aaa;">Conecta a la red primero</p>
+        </div>
+        <div style="margin-top:12px;">
+            <button id="connectMeshBtn" style="width:100%; padding:12px; background:#1e3a5f; border:none; border-radius:12px; color:white; font-weight:bold;">
+                <i class="fas fa-plug"></i> Conectar a la red P2P
+            </button>
         </div>
     </div>
 
-    <!-- Camera modal -->
-    <div id="camera-modal" class="camera-modal" role="dialog" aria-labelledby="camera-title" aria-modal="true" tabindex="-1">
-        <div class="modal-content">
-            <button class="close-modal" id="close-camera" aria-label="Close Camera">×</button>
-            <div class="camera-header">
-                <h3 id="camera-title"><i class="fas fa-camera" aria-hidden="true"></i> Scan QR Code</h3>
-            </div>
-            <div class="camera-container">
-                <video id="camera-preview" autoplay playsinline aria-hidden="true"></video>
-                <div class="detection-box" id="detection-box"></div>
-                <div class="scan-beam" id="scan-beam" aria-hidden="true"></div>
-            </div>
-            <div class="camera-hint">
-                <p lang="en">Point the camera at the QR code to scan</p>
-                <p lang="en"><i class="fas fa-lightbulb" aria-hidden="true"></i> Scanning is completely secure and does not store images</p>
-            </div>
+    <!-- PANEL DE CHAT -->
+    <div id="chatPanel" class="overlay-panel">
+        <div class="overlay-header">
+            <h3><i class="fas fa-comment-dots"></i> Chat <span id="activeChatNamePanel" style="font-size:0.8rem; color:#aaa;"></span></h3>
+            <button class="close-panel" id="closeChatBtn"><i class="fas fa-times"></i></button>
+        </div>
+        <div style="display:flex; gap:6px; margin-bottom:8px;">
+            <select id="peerSelectPanel" style="flex:1; background:#1e293b; border:1px solid #334155; border-radius:20px; padding:8px; color:white; font-size:0.8rem;">
+                <option value="">Seleccionar contacto...</option>
+                <option value="all">📢 Todos (broadcast)</option>
+            </select>
+        </div>
+        <div id="chatMessagesContainer" class="chat-messages">
+            <p style="text-align:center; color:#aaa;">Sin mensajes</p>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="chatInput" placeholder="Escribe un mensaje...">
+            <button id="sendChatBtn"><i class="fas fa-paper-plane"></i></button>
         </div>
     </div>
 
-    <!-- Passphrase modal -->
-    <div id="passphrase-modal" class="passphrase-modal" role="dialog" aria-labelledby="passphrase-title" aria-modal="true" tabindex="-1">
-        <div class="modal-content">
-            <button class="close-modal" id="close-passphrase" aria-label="Close Passphrase Modal">×</button>
-            <div class="modal-header">
-                <h2 id="passphrase-title"><i class="fas fa-key" aria-hidden="true"></i> Enter Passphrase</h2>
-                <p class="modal-subtitle" lang="en">Enter the passphrase to decrypt the QR code</p>
+    <!-- PANEL DE AJUSTES -->
+    <div id="settingsPanel" class="overlay-panel">
+        <div class="overlay-header">
+            <h3><i class="fas fa-sliders-h"></i> Ajustes</h3>
+            <button class="close-panel" id="closeSettingsBtn"><i class="fas fa-times"></i></button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+            <div>
+                <label style="font-size:0.8rem; color:#aaa;">Nombre</label>
+                <input type="text" id="userNameInput" value="Explorador" style="width:100%; background:#1e293b; border:1px solid #334155; border-radius:8px; padding:10px; color:white;">
             </div>
-            <div class="modal-body">
-                <div class="qr-meta" aria-live="polite">
-                    <span id="scan-time" lang="en">Scanned at: --:--</span>
+            <div>
+                <label style="font-size:0.8rem; color:#aaa;">Radio de proximidad (m)</label>
+                <input type="number" id="userRadiusInput" value="2000" step="100" style="width:100%; background:#1e293b; border:1px solid #334155; border-radius:8px; padding:10px; color:white;">
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button id="bleScanBtn" style="flex:1; background:#1e3a5f; border:none; border-radius:10px; padding:10px; color:white;"><i class="fab fa-bluetooth"></i> Escanear BLE</button>
+                <button id="bleSendBtn" style="flex:1; background:#1e3a5f; border:none; border-radius:10px; padding:10px; color:white;"><i class="fas fa-share"></i> Saludo</button>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <div id="qrContainerSmall" style="background:white; width:50px; height:50px; border-radius:6px;"></div>
+                <button id="uploadQrBtnSmall" style="flex:1; background:#2c3e50; border:none; border-radius:10px; padding:10px; color:white;"><i class="fas fa-camera"></i> Escanear QR</button>
+                <input type="file" id="qrFileInput" accept="image/*" hidden>
+            </div>
+            <button id="resetAppBtn" style="background:#4b2e2e; border:none; border-radius:10px; padding:12px; color:white;"><i class="fas fa-sync-alt"></i> Reiniciar</button>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="liveToast" class="toast-msg">📍 Listo</div>
+
+    <script type="module">
+        // ---------- FUNCIONES DE UTILIDAD ----------
+        const haversineDistance = (a, b) => {
+            const R = 6371e3;
+            const φ1 = a.latitude * Math.PI / 180;
+            const φ2 = b.latitude * Math.PI / 180;
+            const Δφ = (b.latitude - a.latitude) * Math.PI / 180;
+            const Δλ = (b.longitude - a.longitude) * Math.PI / 180;
+            const x = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+            return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+        };
+        const escapeHtml = str => String(str).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]);
+
+        // ---------- ESTADO GLOBAL ----------
+        const AppState = {
+            data: {
+                peerId: null,
+                name: localStorage.getItem('mesh_name') || 'Explorador',
+                location: { lat: null, lng: null, radius: parseInt(localStorage.getItem('mesh_radius')) || 2000 },
+                peers: new Map(),
+                activeChat: null,
+                messages: new Map(),
+                room: null,
+                sendAction: null,
+                map: null,
+                userMarker: null,
+                userCircle: null,
+                geoWatch: null,
+                proximityNotified: new Set(),
+                connected: false
+            },
+            listeners: new Set(),
+            subscribe(fn) { this.listeners.add(fn); fn(this.data); return () => this.listeners.delete(fn); },
+            set(patch) { Object.assign(this.data, patch); this.listeners.forEach(fn => fn(this.data)); },
+            updatePeer(id, props) {
+                const existing = this.data.peers.get(id) || { id };
+                this.data.peers.set(id, { ...existing, ...props, lastSeen: Date.now() });
+                this.listeners.forEach(fn => fn(this.data));
+            },
+            deletePeer(id) {
+                const peer = this.data.peers.get(id);
+                if (peer) {
+                    if (peer.marker) peer.marker.remove();
+                    if (peer.circle) peer.circle.remove();
+                }
+                this.data.peers.delete(id);
+                if (this.data.activeChat === id) this.data.activeChat = null;
+                this.data.proximityNotified.delete(id);
+                this.listeners.forEach(fn => fn(this.data));
+            },
+            addMessage(peerId, msg) {
+                const arr = this.data.messages.get(peerId) || [];
+                arr.push({ ...msg, timestamp: Date.now() });
+                this.data.messages.set(peerId, arr);
+                this.listeners.forEach(fn => fn(this.data));
+            },
+            getMessages(peerId) { return this.data.messages.get(peerId) || []; }
+        };
+
+        // ---------- PERSISTENCIA (IndexedDB) ----------
+        const DB = { db: null };
+        DB.init = async () => {
+            try {
+                const { openDB } = await import('https://cdn.jsdelivr.net/npm/idb@7.1.1/build/umd.js');
+                DB.db = await openDB('MeshChatDB', 3, {
+                    upgrade(db) {
+                        if (!db.objectStoreNames.contains('messages')) db.createObjectStore('messages', { keyPath: 'id', autoIncrement: true });
+                        if (!db.objectStoreNames.contains('profile')) db.createObjectStore('profile', { keyPath: 'key' });
+                    }
+                });
+                const profile = await DB.db.get('profile', 'user');
+                if (profile) {
+                    AppState.set({ name: profile.name, location: { ...AppState.data.location, radius: profile.radius } });
+                    document.getElementById('userNameInput').value = profile.name;
+                    document.getElementById('userRadiusInput').value = profile.radius;
+                }
+                const allMsgs = await DB.db.getAll('messages');
+                const msgMap = new Map();
+                allMsgs.forEach(m => {
+                    const arr = msgMap.get(m.peerId) || [];
+                    arr.push({ text: m.text, own: m.own, timestamp: m.timestamp });
+                    msgMap.set(m.peerId, arr);
+                });
+                AppState.set({ messages: msgMap });
+            } catch (e) {
+                console.warn('IndexedDB no disponible, se usará memoria volátil');
+            }
+        };
+        DB.saveMessage = async (peerId, text, own) => {
+            if (DB.db) await DB.db.add('messages', { peerId, text, own, timestamp: Date.now() });
+        };
+        DB.saveProfile = async (name, radius) => {
+            if (DB.db) await DB.db.put('profile', { key: 'user', name, radius });
+        };
+
+        // ---------- TOAST ----------
+        function showToast(text, duration = 2200) {
+            const el = document.getElementById('liveToast');
+            el.style.opacity = '1';
+            el.innerText = text;
+            clearTimeout(window.toastTimeout);
+            window.toastTimeout = setTimeout(() => el.style.opacity = '0', duration);
+        }
+
+        // ---------- MAPA ----------
+        function initMap() {
+            const map = L.map('map').setView([40.4167, -3.70325], 13);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OSM & CartoDB',
+                subdomains: 'abcd',
+                maxZoom: 19
+            }).addTo(map);
+            L.control.scale({ metric: true, imperial: false, position: 'bottomright' }).addTo(map);
+            AppState.set({ map });
+
+            // Forzar redimensionamiento para evitar bordes blancos
+            setTimeout(() => map.invalidateSize(), 100);
+            window.addEventListener('resize', () => setTimeout(() => map.invalidateSize(), 50));
+            return map;
+        }
+
+        function updateUserMap(lat, lng) {
+            const state = AppState.data;
+            if (!state.map) return;
+            if (state.userMarker) state.userMarker.remove();
+            if (state.userCircle) state.userCircle.remove();
+
+            const icon = L.divIcon({
+                html: '<i class="fas fa-user-astronaut" style="color:#2dd4bf; font-size:24px;"></i>',
+                iconSize: [32, 32],
+                className: 'bg-transparent'
+            });
+            state.userMarker = L.marker([lat, lng], { icon }).addTo(state.map).bindPopup('📍 Tú estás aquí');
+            state.userCircle = L.circle([lat, lng], {
+                radius: state.location.radius,
+                color: '#2dd4bf',
+                weight: 2,
+                fillOpacity: 0.1
+            }).addTo(state.map);
+            state.map.setView([lat, lng], 14);
+            document.getElementById('gpsFloatBtn').style.display = 'none'; // ocultar botón flotante
+        }
+
+        function updatePeerOnMap(peerId, peer) {
+            const state = AppState.data;
+            if (!state.map || !peer.lat) return;
+            if (peer.marker) peer.marker.remove();
+            if (peer.circle) peer.circle.remove();
+            const icon = L.divIcon({
+                html: '<i class="fas fa-user-circle" style="color:#3b82f6; font-size:24px;"></i>',
+                iconSize: [32, 32],
+                className: 'bg-transparent'
+            });
+            const marker = L.marker([peer.lat, peer.lng], { icon }).addTo(state.map).bindPopup(peer.name);
+            const circle = L.circle([peer.lat, peer.lng], {
+                radius: peer.radius,
+                color: '#3b82f6',
+                weight: 1.5,
+                fillOpacity: 0.05
+            }).addTo(state.map);
+            peer.marker = marker;
+            peer.circle = circle;
+            AppState.updatePeer(peerId, peer);
+        }
+
+        // ---------- GEOLOCALIZACIÓN ----------
+        let lastGeo = 0;
+        function startGeo() {
+            if (!navigator.geolocation) {
+                showToast('GPS no soportado en este navegador');
+                return;
+            }
+            showToast('Solicitando permiso de ubicación...');
+            if (AppState.data.geoWatch) navigator.geolocation.clearWatch(AppState.data.geoWatch);
+
+            const watch = navigator.geolocation.watchPosition(
+                (pos) => {
+                    const now = Date.now();
+                    if (now - lastGeo < 3000) return;
+                    lastGeo = now;
+                    const { latitude, longitude } = pos.coords;
+                    AppState.set({ location: { ...AppState.data.location, lat: latitude, lng: longitude } });
+                    updateUserMap(latitude, longitude);
+                    broadcastMyState();
+                    checkAllProximity();
+                    showToast('✅ Ubicación actualizada');
+                },
+                (err) => {
+                    let msg = 'Error al obtener ubicación: ';
+                    switch (err.code) {
+                        case 1: msg += 'Permiso denegado. Actívalo en ajustes.'; break;
+                        case 2: msg += 'Señal no disponible.'; break;
+                        case 3: msg += 'Tiempo de espera agotado.'; break;
+                    }
+                    showToast(msg);
+                },
+                { enableHighAccuracy: true, maximumAge: 8000, timeout: 12000 }
+            );
+            AppState.set({ geoWatch: watch });
+        }
+
+        function broadcastMyState() {
+            const state = AppState.data;
+            if (!state.sendAction || !state.location.lat) return;
+            state.sendAction({
+                type: 'state',
+                name: state.name,
+                lat: state.location.lat,
+                lng: state.location.lng,
+                radius: state.location.radius
+            });
+        }
+
+        function checkAllProximity() {
+            const state = AppState.data;
+            if (!state.location.lat) return;
+            for (let [id, peer] of state.peers.entries()) {
+                if (!peer.lat) continue;
+                const dist = haversineDistance(
+                    { latitude: state.location.lat, longitude: state.location.lng },
+                    { latitude: peer.lat, longitude: peer.lng }
+                );
+                const sumRad = state.location.radius + peer.radius;
+                const near = dist <= sumRad;
+                if (near && !state.proximityNotified.has(id)) {
+                    state.proximityNotified.add(id);
+                    AppState.set({ proximityNotified: state.proximityNotified });
+                    showToast(`🔔 ${peer.name} está a ${Math.round(dist)}m`);
+                    if (state.sendAction) state.sendAction({ type: 'prox_alert', fromName: state.name, msg: `¡Cerca! ${Math.round(dist)}m` }, id);
+                } else if (!near && state.proximityNotified.has(id)) {
+                    state.proximityNotified.delete(id);
+                    AppState.set({ proximityNotified: state.proximityNotified });
+                }
+            }
+        }
+
+        // ---------- RED MESH (carga dinámica) ----------
+        let meshInitialized = false;
+        async function initMesh() {
+            if (meshInitialized) return;
+            try {
+                const { joinRoom } = await import('trystero');
+                const room = joinRoom({ appId: 'meshchat-v1' }, 'proximity-room');
+                const [sendAction, receiveAction] = room.makeAction('main');
+                const myId = room.peerId;
+                AppState.set({ room, sendAction, peerId: myId, connected: true });
+                meshInitialized = true;
+                document.getElementById('connDot').style.color = '#22c55e';
+                showToast('Conectado a red P2P');
+                generateQR(myId);
+
+                receiveAction((data, fromId) => {
+                    if (data.type === 'state') {
+                        AppState.updatePeer(fromId, { name: data.name, lat: data.lat, lng: data.lng, radius: data.radius });
+                        updatePeerOnMap(fromId, AppState.data.peers.get(fromId));
+                        checkAllProximity();
+                    } else if (data.type === 'chat') {
+                        if (data.target === myId || data.target === 'all') {
+                            AppState.addMessage(fromId, { text: data.text, own: false });
+                            DB.saveMessage(fromId, data.text, false);
+                            if (AppState.data.activeChat === fromId || (data.target === 'all' && AppState.data.activeChat === 'all')) {
+                                renderChatMessages();
+                            }
+                            showToast(`💬 ${AppState.data.peers.get(fromId)?.name || 'alguien'}: ${data.text.slice(0, 20)}`);
+                        }
+                    } else if (data.type === 'prox_alert') {
+                        showToast(`📍 ${data.fromName}: ${data.msg}`);
+                    }
+                });
+
+                room.onPeerJoin((peerId) => {
+                    const state = AppState.data;
+                    if (state.sendAction && state.location.lat) {
+                        state.sendAction({ type: 'state', name: state.name, lat: state.location.lat, lng: state.location.lng, radius: state.location.radius }, peerId);
+                    }
+                });
+
+                room.onPeerLeave((peerId) => {
+                    const peer = AppState.data.peers.get(peerId);
+                    if (peer) {
+                        if (peer.marker) peer.marker.remove();
+                        if (peer.circle) peer.circle.remove();
+                    }
+                    AppState.deletePeer(peerId);
+                    updatePeerListUI();
+                });
+
+                setInterval(() => { if (AppState.data.location.lat) broadcastMyState(); }, 7000);
+            } catch (e) {
+                console.error(e);
+                showToast('Error al conectar red P2P. ¿Estás en un entorno compatible?');
+            }
+        }
+
+        async function generateQR(peerId) {
+            try {
+                const QRCode = (await import('https://cdn.skypack.dev/qrcode')).default;
+                const container = document.getElementById('qrContainerSmall');
+                container.innerHTML = '';
+                QRCode.toCanvas(container, `meshpeer:${peerId}`, { width: 50, margin: 1 });
+            } catch (e) { console.warn('No se pudo generar QR'); }
+        }
+
+        // ---------- UI: CONTACTOS ----------
+        function updatePeerListUI() {
+            const peers = AppState.data.peers;
+            const container = document.getElementById('peerListContainer');
+            const select = document.getElementById('peerSelectPanel');
+            if (peers.size === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#aaa;">Ningún contacto</p>';
+                select.innerHTML = '<option value="">Seleccionar contacto...</option><option value="all">📢 Todos (broadcast)</option>';
+                return;
+            }
+            let html = '';
+            select.innerHTML = '<option value="">Seleccionar contacto...</option><option value="all">📢 Todos (broadcast)</option>';
+            for (let [id, p] of peers.entries()) {
+                const dist = (AppState.data.location.lat && p.lat) ? haversineDistance(
+                    { latitude: AppState.data.location.lat, longitude: AppState.data.location.lng },
+                    { latitude: p.lat, longitude: p.lng }
+                ) : null;
+                const distText = dist ? `${Math.round(dist)}m` : '?';
+                html += `<div class="contact-item" data-id="${id}">
+                            <div><i class="fas fa-user-circle"></i> <strong>${escapeHtml(p.name)}</strong><br><small>${distText} · radio ${p.radius}m</small></div>
+                            <button class="chat-start-btn" data-id="${id}" style="background:#1e3a5f; border:none; border-radius:8px; padding:4px 10px; color:white;">Chat</button>
+                        </div>`;
+                select.innerHTML += `<option value="${id}">${escapeHtml(p.name)} (${distText})</option>`;
+            }
+            container.innerHTML = html;
+            document.querySelectorAll('.chat-start-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    setActiveChat(btn.getAttribute('data-id'));
+                    openPanel('chatPanel');
+                });
+            });
+            document.querySelectorAll('.contact-item').forEach(el => {
+                el.addEventListener('click', () => {
+                    setActiveChat(el.getAttribute('data-id'));
+                    openPanel('chatPanel');
+                });
+            });
+        }
+
+        function setActiveChat(peerId) {
+            if (peerId === 'all') {
+                AppState.set({ activeChat: 'all' });
+                document.getElementById('activeChatNamePanel').innerText = '(Todos)';
+            } else if (AppState.data.peers.has(peerId)) {
+                AppState.set({ activeChat: peerId });
+                document.getElementById('activeChatNamePanel').innerText = AppState.data.peers.get(peerId).name;
+            }
+            document.getElementById('peerSelectPanel').value = peerId;
+            renderChatMessages();
+        }
+
+        function renderChatMessages() {
+            const active = AppState.data.activeChat;
+            const container = document.getElementById('chatMessagesContainer');
+            if (!active) { container.innerHTML = '<p style="text-align:center; color:#aaa;">Selecciona un contacto</p>'; return; }
+            const msgs = AppState.getMessages(active);
+            if (msgs.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#aaa;">Sin mensajes</p>';
+                return;
+            }
+            container.innerHTML = msgs.slice(-50).map(m => `
+                <div class="chat-bubble ${m.own ? 'own' : 'other'}">
+                    <div>${escapeHtml(m.text)}</div>
+                    <div style="font-size:0.6rem; opacity:0.6; text-align:right;">${new Date(m.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
                 </div>
-                <div class="input-group">
-                    <label class="input-label" for="modal-passphrase">Passphrase</label>
-                    <input type="password" id="modal-passphrase" placeholder="Enter passphrase" required aria-describedby="modal-passphrase-error">
-                    <i class="fas fa-key icon icon-left" aria-hidden="true"></i>
-                    <div class="right-icons">
-                        <button type="button" class="icon-right toggle-password" title="Show/Hide Passphrase" aria-label="Show/Hide Passphrase">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </div>
-                    <span id="modal-passphrase-error" class="error-message hidden" role="alert"></span>
-                </div>
-            </div>
-            <div class="modal-actions">
-                <button id="modal-decrypt-button" class="btn-primary" aria-label="Decrypt Message">Decrypt</button>
-                <button id="modal-rescan-button" class="btn-secondary" aria-label="Rescan QR Code">Rescan</button>
-                <button id="modal-cancel-button" class="btn-secondary" aria-label="Cancel">Cancel</button>
-            </div>
-        </div>
-    </div>
+            `).join('');
+            container.scrollTop = container.scrollHeight;
+        }
 
-    <!-- Notification container -->
-    <div id="toast-container" role="alert" aria-live="assertive"></div>
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text) return;
+            const target = AppState.data.activeChat;
+            if (!target) { showToast('Selecciona un contacto'); return; }
+            if (!AppState.data.sendAction) { showToast('Conéctate a la red primero'); return; }
+            if (target === 'all') {
+                AppState.data.sendAction({ type: 'chat', text, target: 'all' });
+                AppState.addMessage('all', { text, own: true });
+                DB.saveMessage('all', text, true);
+            } else {
+                AppState.data.sendAction({ type: 'chat', text, target }, target);
+                AppState.addMessage(target, { text, own: true });
+                DB.saveMessage(target, text, true);
+            }
+            input.value = '';
+            renderChatMessages();
+        }
 
-    <!-- Session modal container -->
-    <div id="session-modal-container"></div>
+        // ---------- PANELES OVERLAY ----------
+        function openPanel(panelId) {
+            document.getElementById('contactsPanel').classList.remove('open');
+            document.getElementById('chatPanel').classList.remove('open');
+            document.getElementById('settingsPanel').classList.remove('open');
+            document.getElementById(panelId).classList.add('open');
+        }
+        function closeAllPanels() {
+            document.querySelectorAll('.overlay-panel').forEach(p => p.classList.remove('open'));
+        }
 
-    <!-- Settings modal -->
-    <div id="settings-modal" class="modal" role="dialog" aria-labelledby="settings-title" aria-modal="true" tabindex="-1">
-        <div class="modal-content">
-            <button class="close-modal" aria-label="Close Settings">×</button>
-            <div class="modal-header">
-                <h2 id="settings-title"><i class="fas fa-cog" aria-hidden="true"></i> Security Settings</h2>
-                <p class="modal-subtitle" lang="en">Customize encryption parameters</p>
-            </div>
-            <div class="modal-body">
-                <form id="settings-form">
-                    <div class="input-group">
-                        <label class="input-label" for="pbkdf2-iterations">PBKDF2 Iterations</label>
-                        <input type="number" id="pbkdf2-iterations" min="100000" max="1000000" step="10000" value="310000" required>
-                        <p class="hint">Higher values increase security but slow down processing (Default: 310,000)</p>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label class="input-label" for="security-level">Security Level</label>
-                        <select id="security-level">
-                            <option value="high">High (AES-256 + HMAC-SHA256)</option>
-                            <option value="medium">Medium (AES-256)</option>
-                            <option value="low">Low (AES-128)</option>
-                        </select>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label class="input-label" for="session-timeout">Session Timeout (minutes)</label>
-                        <input type="number" id="session-timeout" min="1" max="120" value="30">
-                    </div>
-                    
-                    <div class="input-group">
-                        <label class="input-label" for="auto-wipe">Auto Wipe Sensitive Data</label>
-                        <select id="auto-wipe">
-                            <option value="5">After 5 minutes</option>
-                            <option value="10">After 10 minutes</option>
-                            <option value="30">After 30 minutes</option>
-                            <option value="0" selected>Never</option>
-                        </select>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label class="input-label" for="qr-error-correction">QR Error Correction</label>
-                        <select id="qr-error-correction">
-                            <option value="H">High (30%)</option>
-                            <option value="Q">Medium (25%)</option>
-                            <option value="M">Low (15%)</option>
-                            <option value="L">Lowest (7%)</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-actions">
-                <button id="save-settings" class="btn-primary" aria-label="Save Settings">Save Settings</button>
-                <button id="reset-settings" class="btn-secondary" aria-label="Reset to Defaults">Reset Defaults</button>
-                <button id="cancel-settings" class="btn-secondary" aria-label="Cancel">Cancel</button>
-            </div>
-        </div>
-    </div>
+        // ---------- BLE (dinámico) ----------
+        let bleDevice = null;
+        async function scanBLE() {
+            if (!navigator.bluetooth) { showToast('BLE no compatible (usa Chrome/Edge)'); return; }
+            try {
+                bleDevice = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['generic_access'] });
+                showToast(`BLE: ${bleDevice.name || 'dispositivo'}`);
+            } catch (e) { showToast('BLE cancelado'); }
+        }
+        async function sendBLEHello() {
+            if (!bleDevice) { showToast('Sin dispositivo BLE'); return; }
+            try {
+                const server = await bleDevice.gatt.connect();
+                const service = await server.getPrimaryService('generic_access');
+                const char = await service.getCharacteristic('device_name');
+                const value = await char.readValue();
+                showToast(`Saludo a ${new TextDecoder().decode(value)}`);
+                await server.disconnect();
+            } catch (e) { showToast('Fallo BLE'); }
+        }
+        async function scanQRFromImage(file) {
+            try {
+                const jsQR = (await import('https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js')).default;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width; canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const code = jsQR(imageData.data, canvas.width, canvas.height);
+                        if (code && code.data.startsWith('meshpeer:')) {
+                            const remoteId = code.data.split(':')[1];
+                            if (remoteId && remoteId !== AppState.data.peerId) {
+                                showToast(`Contactando ${remoteId.slice(0, 8)}...`);
+                                const state = AppState.data;
+                                if (state.sendAction) state.sendAction({ type: 'state', name: state.name, lat: state.location.lat, lng: state.location.lng, radius: state.location.radius }, remoteId);
+                                else showToast('Conéctate a la red primero');
+                            } else showToast('QR propio o inválido');
+                        } else showToast('QR no válido');
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            } catch (e) { showToast('Error al procesar QR'); }
+        }
 
-    <!-- External dependencies -->
-    <script defer src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js" integrity="sha256-7eJpOkpqUSa501ZpBis1jsq2rnubhqHPMC/rRahRSQc=" crossorigin="anonymous"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js" integrity="sha256-7GTYmrMJbc6AhJEt7f+fLKWuZBRNDKzUoILCk9XQa1k=" crossorigin="anonymous"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" integrity="sha256-TnzVZFlCkL9D75PtJfOP7JASQkdCGD+pc60Lus+IrjA=" crossorigin="anonymous"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" integrity="sha256-mMzxeqEMILsTAXYmGPzJtqs6Tn8mtgcdZNC0EVTfOHU=" crossorigin="anonymous"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/zxcvbn@4.4.2/dist/zxcvbn.js" integrity="sha256-9CxlH0BQastrZiSQ8zjdR6WVHTMSA5xKuP5QkEhPNRo=" crossorigin="anonymous"></script>
-    <!-- Main script -->
-    <script defer src="script.js"></script>
+        // ---------- INICIALIZACIÓN ----------
+        window.addEventListener('load', async () => {
+            await DB.init();
+            initMap();
+
+            // Eventos de UI
+            document.getElementById('contactsBtn').addEventListener('click', () => openPanel('contactsPanel'));
+            document.getElementById('settingsBtn').addEventListener('click', () => openPanel('settingsPanel'));
+            document.getElementById('homeBtn').addEventListener('click', () => {
+                const loc = AppState.data.location;
+                if (loc.lat && AppState.data.map) AppState.data.map.setView([loc.lat, loc.lng], 14);
+                else if (AppState.data.map) AppState.data.map.setView([40.4167, -3.70325], 13);
+                closeAllPanels();
+            });
+            document.getElementById('qrBtn').addEventListener('click', () => openPanel('settingsPanel'));
+            document.getElementById('locateBtn').addEventListener('click', startGeo);
+            document.getElementById('gpsFloatBtn').addEventListener('click', startGeo);
+            document.getElementById('chatBtn').addEventListener('click', () => {
+                if (!AppState.data.activeChat) {
+                    if (AppState.data.peers.size > 0) {
+                        const firstPeer = AppState.data.peers.keys().next().value;
+                        setActiveChat(firstPeer);
+                    } else {
+                        setActiveChat('all');
+                    }
+                }
+                openPanel('chatPanel');
+            });
+
+            // Cerrar paneles
+            document.getElementById('closeContactsBtn').addEventListener('click', closeAllPanels);
+            document.getElementById('closeChatBtn').addEventListener('click', closeAllPanels);
+            document.getElementById('closeSettingsBtn').addEventListener('click', closeAllPanels);
+
+            // Conexión red
+            document.getElementById('connectMeshBtn').addEventListener('click', initMesh);
+
+            // Chat
+            document.getElementById('sendChatBtn').addEventListener('click', sendMessage);
+            document.getElementById('chatInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+            document.getElementById('peerSelectPanel').addEventListener('change', (e) => setActiveChat(e.target.value));
+
+            // Ajustes
+            document.getElementById('userNameInput').addEventListener('change', (e) => {
+                const name = e.target.value.trim() || 'Explorador';
+                AppState.set({ name });
+                localStorage.setItem('mesh_name', name);
+                DB.saveProfile(name, AppState.data.location.radius);
+                broadcastMyState();
+            });
+            document.getElementById('userRadiusInput').addEventListener('change', (e) => {
+                const radius = parseInt(e.target.value) || 2000;
+                AppState.set({ location: { ...AppState.data.location, radius } });
+                localStorage.setItem('mesh_radius', radius);
+                DB.saveProfile(AppState.data.name, radius);
+                if (AppState.data.userCircle) AppState.data.userCircle.setRadius(radius);
+                broadcastMyState();
+            });
+            document.getElementById('bleScanBtn').addEventListener('click', scanBLE);
+            document.getElementById('bleSendBtn').addEventListener('click', sendBLEHello);
+            document.getElementById('uploadQrBtnSmall').addEventListener('click', () => document.getElementById('qrFileInput').click());
+            document.getElementById('qrFileInput').addEventListener('change', (e) => {
+                if (e.target.files[0]) scanQRFromImage(e.target.files[0]);
+            });
+            document.getElementById('resetAppBtn').addEventListener('click', () => {
+                localStorage.clear();
+                window.location.reload();
+            });
+
+            // Sincronizar UI con estado
+            AppState.subscribe(() => {
+                updatePeerListUI();
+                renderChatMessages();
+            });
+
+            // Mostrar mensaje inicial
+            showToast('Toca "Mi mapa" o el botón GPS para activar tu ubicación', 3500);
+        });
+    </script>
 </body>
 </html>
